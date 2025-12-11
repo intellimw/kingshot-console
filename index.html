@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KINGSHOT COMMAND CONSOLE</title>
+    <style>
+        :root {
+            --bg-dark: #2b2b2b;
+            --bg-panel: #434343;
+            --text-light: #ffffff;
+            --input-blue: #c9daf8;
+            --output-grey: #d9d9d9;
+            --accent-red: #ff4d4d;
+            --accent-green: #4caf50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .module {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            flex: 1;
+            min-width: 350px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .module-header {
+            background-color: var(--bg-panel);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 3px solid #000;
+        }
+
+        .control-panel {
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-bottom: 1px solid #ccc;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        input, select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: var(--input-blue);
+            font-weight: bold;
+        }
+
+        /* Read only fields */
+        input:read-only {
+            background-color: var(--output-grey);
+            color: #333;
+            cursor: default;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #555;
+            color: white;
+            padding: 10px;
+            font-size: 0.85rem;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        .input-cell input, .input-cell select {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: var(--input-blue);
+            border: 1px solid #999;
+        }
+
+        .result-cell {
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #000;
+            background-color: var(--output-grey);
+            text-align: center;
+            padding: 8px;
+        }
+
+        .sync-btn {
+            background-color: var(--accent-red);
+            color: white;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .sync-btn:hover { background-color: #d32f2f; }
+        
+        .sync-active {
+            background-color: var(--accent-green);
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #333;
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot-blue { background-color: var(--input-blue); }
+        .dot-grey { background-color: var(--output-grey); }
+
+    </style>
+</head>
+<body>
+
+    <h1>Kingshot Command Console</h1>
+
+    <div class="legend">
+        <div class="legend-item"><div class="dot dot-blue"></div> MANUAL INPUT</div>
+        <div class="legend-item"><div class="dot dot-grey"></div> LOCKED / AUTO</div>
+    </div>
+
+    <div class="container">
+        
+        <div class="module">
+            <div class="module-header">⚔️ Precision Rally Sequencer</div>
+            <div class="control-panel">
+                <div class="control-group">
+                    <label>Projected Impact Time (UTC)</label>
+                    <input type="time" id="impactTime" step="1" value="12:00:00">
+                </div>
+                <div class="control-group">
+                    <label>Latency Correction (Sec)</label>
+                    <select id="latency">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rally Leader</th>
+                        <th style="width: 80px;">Rally Duration</th>
+                        <th>March (Sec)</th>
+                        <th>Offset (Sec)</th>
+                        <th>Launch Execution (UTC)</th>
+                    </tr>
+                </thead>
+                <tbody id="attackTable">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="module">
+            <div class="module-header">🛡️ Precision Reinforcement Sequencer</div>
+            <div class="control-panel">
+                <div class="control-group">
+                    <label>Sync Reference</label>
+                    <select id="syncRef">
+                        <option value="1">1 min</option>
+                        <option value="2">2 min</option>
+                        <option value="3">3 min</option>
+                        <option value="4" selected>4 min</option>
+                        <option value="5">5 min</option>
+                        <option value="10">10 min</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Status</label>
+                    <button class="sync-btn" id="syncBtn" onclick="triggerSync()">Click to Sync</button>
+                </div>
+                <div class="control-group">
+                    <label>Calibration Timestamp (UTC)</label>
+                    <input type="text" id="calibrationTime" readonly placeholder="Waiting...">
+                </div>
+                <div class="control-group">
+                    <label>Hostile Transit (Sec)</label>
+                    <input type="number" id="hostileTransit" value="30">
+                </div>
+                <div class="control-group">
+                    <label>Hostile Impact Timestamp</label>
+                    <input type="text" id="hostileImpact" readonly>
+                </div>
+                <div class="control-group">
+                    <label>Reinforcement Offset (Sec)</label>
+                    <input type="number" id="reinfOffset" value="1">
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Unit Commander</th>
+                        <th>March Duration (Sec)</th>
+                        <th>Launch Execution (UTC)</th>
+                    </tr>
+                </thead>
+                <tbody id="defenseTable">
+                    </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const attackRows = 8;
+        const defenseRows = 8;
+        const defaultAttackers = ["intelli", "Buu", "Granny", "Plott", "5", "6", "7", "8"];
+        const defaultDefenders = ["intelli", "Buu", "Granny", "Plott", "5", "6", "7", "8"];
+
+        // --- INITIALIZATION ---
+        function init() {
+            // Build Attack Table
+            const attackBody = document.getElementById('attackTable');
+            defaultAttackers.forEach((name, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="input-cell"><input type="text" value="${name}"></td>
+                    <td class="input-cell">
+                        <select onchange="calcAttack()">
+                            <option value="300">5m</option>
+                            <option value="600">10m</option>
+                            <option value="3600">1h</option>
+                        </select>
+                    </td>
+                    <td class="input-cell"><input type="number" value="10" oninput="calcAttack()"></td>
+                    <td class="input-cell"><input type="number" value="${i}" oninput="calcAttack()"></td>
+                    <td class="result-cell" id="attResult-${i}">--:--:--</td>
+                `;
+                attackBody.appendChild(tr);
+            });
+
+            // Build Defense Table
+            const defenseBody = document.getElementById('defenseTable');
+            defaultDefenders.forEach((name, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="input-cell"><input type="text" value="${name}"></td>
+                    <td class="input-cell"><input type="number" value="30" oninput="calcDefense()"></td>
+                    <td class="result-cell" id="defResult-${i}">--:--:--</td>
+                `;
+                defenseBody.appendChild(tr);
+            });
+
+            // Listeners
+            document.getElementById('impactTime').addEventListener('input', calcAttack);
+            document.getElementById('latency').addEventListener('change', calcAttack);
+            document.getElementById('hostileTransit').addEventListener('input', calcDefense);
+            document.getElementById('reinfOffset').addEventListener('input', calcDefense);
+            document.getElementById('syncRef').addEventListener('change', calcDefense);
+
+            // Initial Calc
+            calcAttack();
+        }
+
+        // --- ATTACK LOGIC ---
+        function calcAttack() {
+            const impactStr = document.getElementById('impactTime').value;
+            if (!impactStr) return;
+
+            const latency = parseInt(document.getElementById('latency').value) || 0;
+            
+            // Convert Impact Time string to Seconds since midnight
+            const [h, m, s] = impactStr.split(':').map(Number);
+            const impactSeconds = (h * 3600) + (m * 60) + s;
+
+            const rows = document.getElementById('attackTable').rows;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const rallyDur = parseInt(rows[i].cells[1].querySelector('select').value);
+                const marchDur = parseInt(rows[i].cells[2].querySelector('input').value) || 0;
+                const offset = parseInt(rows[i].cells[3].querySelector('input').value) || 0;
+
+                // Formula: Target - RallyDur - MarchDur - Offset(Earlier) - Latency
+                // Note: Offset is usually "Earlier" for clearing.
+                let launchTotal = impactSeconds - rallyDur - marchDur - offset - latency;
+
+                // Handle crossing midnight (negative numbers)
+                if (launchTotal < 0) launchTotal += 86400;
+                if (launchTotal >= 86400) launchTotal -= 86400;
+
+                document.getElementById(`attResult-${i}`).innerText = secondsToHMS(launchTotal);
+            }
+        }
+
+        // --- DEFENSE LOGIC ---
+        let syncTimestamp = null; // Stores the Javascript Date object when sync was clicked
+
+        function triggerSync() {
+            syncTimestamp = new Date();
+            const utcStr = syncTimestamp.toISOString().substr(11, 8); // Extract HH:MM:SS
+            document.getElementById('calibrationTime').value = utcStr;
+            
+            // Visual feedback
+            const btn = document.getElementById('syncBtn');
+            btn.innerText = "SYNCED";
+            btn.classList.add('sync-active');
+            
+            calcDefense();
+        }
+
+        function calcDefense() {
+            if (!syncTimestamp) return;
+
+            const syncRefMin = parseInt(document.getElementById('syncRef').value) || 0;
+            const hostileTransit = parseInt(document.getElementById('hostileTransit').value) || 0;
+            const reinfOffset = parseInt(document.getElementById('reinfOffset').value) || 0;
+
+            // 1. Calculate Hostile Impact Time
+            // Logic: SyncTime + SyncRef (Minutes) + HostileTransit
+            let impactDate = new Date(syncTimestamp.getTime());
+            impactDate.setMinutes(impactDate.getMinutes() + syncRefMin);
+            impactDate.setSeconds(impactDate.getSeconds() + hostileTransit);
+
+            // Display Hostile Impact
+            document.getElementById('hostileImpact').value = impactDate.toISOString().substr(11, 8);
+
+            // 2. Calculate Defenders
+            const rows = document.getElementById('defenseTable').rows;
+            for (let i = 0; i < rows.length; i++) {
+                const marchDur = parseInt(rows[i].cells[1].querySelector('input').value) || 0;
+
+                // Logic: HostileImpact + ReinfOffset - MyMarch
+                let launchDate = new Date(impactDate.getTime());
+                launchDate.setSeconds(launchDate.getSeconds() + reinfOffset - marchDur);
+
+                document.getElementById(`defResult-${i}`).innerText = launchDate.toISOString().substr(11, 8);
+            }
+        }
+
+        // --- UTILS ---
+        function secondsToHMS(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = Math.floor(totalSeconds % 60);
+            return [
+                h.toString().padStart(2, '0'),
+                m.toString().padStart(2, '0'),
+                s.toString().padStart(2, '0')
+            ].join(':');
+        }
+
+        // Run
+        init();
+
+    </script>
+</body>
+</html>
